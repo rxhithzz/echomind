@@ -1,37 +1,41 @@
+// lib/mockData.js
+
 export const mockQuestions = [
   {
     id: 1,
     question: "Solve for x: 2x + 4 = 10",
     topic: "Algebra",
     options: ["x = 2", "x = 3", "x = 4", "x = 5"],
-    answer: "x = 3",
   },
   {
     id: 2,
     question: "What is f(x) = x² when x = 3?",
     topic: "Functions",
     options: ["6", "9", "12", "3"],
-    answer: "9",
   },
   {
     id: 3,
     question: "What is the limit of 1/x as x → ∞?",
     topic: "Limits",
     options: ["1", "0", "∞", "-1"],
-    answer: "0",
   },
   {
     id: 4,
     question: "Simplify: 3(x + 2) − x",
     topic: "Algebra",
     options: ["2x + 6", "2x + 2", "4x + 6", "3x + 2"],
-    answer: "2x + 6",
+  },
+  {
+    id: 5,
+    question: "What is sin²(x) + cos²(x)?",
+    topic: "Trigonometry",
+    options: ["0", "2", "1", "undefined"],
   },
 ];
 
 export const mockGapResult = {
-  score: 4,
-  total: 10,
+  score: 2,
+  total: 5,
   weak_topics: ["Algebra", "Differentiation"],
   root_cause: "Algebra",
   roadmap: [
@@ -47,3 +51,11 @@ export const mockProgress = {
   weak: ["Differentiation", "Integration"],
   root_gaps: ["Algebra", "Functions"],
 };
+
+export const mockChatHistory = [
+  {
+    id: 1,
+    sender: "professor",
+    message: "Hello! I am Professor Kumar. What would you like to learn today?",
+  },
+];
