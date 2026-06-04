@@ -1,0 +1,27 @@
+numpy>=2.1.0
+fastapi==0.115.0
+uvicorn==0.30.6
+python-multipart==0.0.9
+
+# LangChain
+langchain==0.3.0
+langchain-community==0.3.0
+langchain-chroma==0.1.4
+langchain-ollama==0.2.0
+
+# Document processing
+pypdf==4.3.1
+
+# Video transcription
+openai-whisper
+ffmpeg-python
+
+# Vector DB
+chromadb==0.5.15
+
+# Utilities
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-dotenv==1.0.1
+pandas
+jinja2
