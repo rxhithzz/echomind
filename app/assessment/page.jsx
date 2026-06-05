@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import { mockQuestions } from "@/lib/mockData";
+import { getQuestions } from "@/lib/api";
 
 export default function AssessmentPage() {
   const router = useRouter();
@@ -13,10 +13,27 @@ export default function AssessmentPage() {
   const [selected, setSelected] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const question = mockQuestions[currentIndex];
-  const total = mockQuestions.length;
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadQuestions() {
+      const data = await getQuestions();
+
+      if (data) {
+        setQuestions(data);
+      }
+
+      setLoading(false);
+    }
+
+    loadQuestions();
+  }, []);
+
+  const question = questions[currentIndex];
+  const total = questions.length;
   const isLast = currentIndex === total - 1;
-  const progress = Math.round((currentIndex / total) * 100);
+  const progress = total > 0 ? Math.round((currentIndex / total) * 100) : 0;
 
   // ── Pick an option
   function handleSelect(option) {
@@ -34,7 +51,12 @@ export default function AssessmentPage() {
     if (isLast) {
       // Last question — save to localStorage and go to dashboard
       setIsSubmitting(true);
-      localStorage.setItem("echomind_answers", JSON.stringify(updatedAnswers));
+
+      localStorage.setItem(
+        "echomind_answers",
+        JSON.stringify(updatedAnswers),
+      );
+
       localStorage.setItem(
         "echomind_gap",
         JSON.stringify({
@@ -54,12 +76,21 @@ export default function AssessmentPage() {
           ],
         }),
       );
+
       setTimeout(() => router.push("/dashboard"), 1000);
     } else {
       // Move to next question
       setCurrentIndex(currentIndex + 1);
       setSelected(null);
     }
+  }
+
+  if (loading) {
+    return <div className="p-10">Loading questions...</div>;
+  }
+
+  if (!question) {
+    return <div className="p-10">No questions found.</div>;
   }
 
   return (
@@ -122,29 +153,29 @@ export default function AssessmentPage() {
               !selected || isSubmitting
                 ? "bg-gray-300 cursor-not-allowed"
                 : isLast
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-blue-600 hover:bg-blue-700"
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
             {isSubmitting
               ? "Analysing gaps..."
               : isLast
-                ? "Submit Assessment ✓"
-                : "Next Question →"}
+              ? "Submit Assessment ✓"
+              : "Next Question →"}
           </button>
         </div>
 
         {/* ── Answer progress dots */}
         <div className="flex justify-center gap-2 mt-8">
-          {mockQuestions.map((_, i) => (
+          {questions.map((_, i) => (
             <div
               key={i}
               className={`w-2 h-2 rounded-full transition-colors ${
                 i < currentIndex
                   ? "bg-green-400"
                   : i === currentIndex
-                    ? "bg-blue-500"
-                    : "bg-gray-200"
+                  ? "bg-blue-500"
+                  : "bg-gray-200"
               }`}
             />
           ))}
