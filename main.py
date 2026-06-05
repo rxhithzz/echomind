@@ -7,7 +7,7 @@
 # ============================================================
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware        # ← NEW
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 
@@ -22,7 +22,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# ---- CORS Configuration ----                             # ← NEW
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -61,9 +60,15 @@ class StudyPlanRequest(BaseModel):
     student_name: str
     weak_topics: List[str]
 
+class Question(BaseModel):              # ← NEW
+    id: int
+    question: str
+    topic: str
+    options: List[str]
+
 
 # ============================================================
-# SECTION 4: ENDPOINTS (unchanged)
+# SECTION 4: ENDPOINTS
 # ============================================================
 
 @app.get("/")
@@ -147,3 +152,41 @@ def generate_study_plan(data: StudyPlanRequest):
         "student": data.student_name,
         "study_plan": study_plan
     }
+
+@app.get("/assessment/questions")       # ← NEW
+def get_questions():
+
+    questions = [
+        Question(
+            id=1,
+            question="Solve for x: x + 5 = 12",
+            topic="Algebra",
+            options=["5", "7", "9", "12"]
+        ),
+        Question(
+            id=2,
+            question="Simplify: 3x + 2x",
+            topic="Algebra",
+            options=["5x", "6x", "x5", "5"]
+        ),
+        Question(
+            id=3,
+            question="If f(x) = 2x + 3, what is f(4)?",
+            topic="Functions",
+            options=["8", "10", "11", "14"]
+        ),
+        Question(
+            id=4,
+            question="What is the domain of f(x) = 1/x?",
+            topic="Functions",
+            options=["All real numbers", "x ≠ 0", "x > 0", "x < 0"]
+        ),
+        Question(
+            id=5,
+            question="What is the limit of 1/x as x approaches infinity?",
+            topic="Limits",
+            options=["1", "0", "∞", "Undefined"]
+        )
+    ]
+
+    return questions
