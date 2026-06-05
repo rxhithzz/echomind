@@ -47,10 +47,10 @@ const nodeConfig = {
   },
   root: {
     bg: "bg-red-100",
-    border: "border-red-400",
+    border: "border-red-500 border-2",
     text: "text-red-800",
     dot: "bg-red-500 animate-pulse",
-    label: "Root Gap",
+    label: "Root Gap ⚠️",
   },
   locked: {
     bg: "bg-gray-100",
@@ -194,6 +194,19 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
+          <div>
+  <h2 className="text-base font-semibold text-gray-800">
+    🧬 Knowledge DNA
+  </h2>
+  <p className="text-xs text-gray-400 mt-0.5">
+    Visual map of your knowledge — red nodes are root gaps
+  </p>
+</div>
+
+<span className="text-xs bg-red-100 text-red-700 font-semibold px-3 py-1 rounded-full">
+  {gapData.root_gaps?.length || 3} root gaps found
+</span>
+
           {/* Legend */}
           <div className="flex gap-4 mb-5 flex-wrap">
             {Object.entries(nodeConfig).map(([status, config]) => (
