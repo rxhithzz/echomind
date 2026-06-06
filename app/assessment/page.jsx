@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import { getQuestions } from "@/lib/api";
+import { getQuestions, submitAssessment } from "@/lib/api"; // ✅ FIX: added submitAssessment
 
 export default function AssessmentPage() {
   const router = useRouter();
@@ -19,14 +19,11 @@ export default function AssessmentPage() {
   useEffect(() => {
     async function loadQuestions() {
       const data = await getQuestions();
-
-      if (data) {
+      if (data && data.length > 0) {
         setQuestions(data);
       }
-
       setLoading(false);
     }
-
     loadQuestions();
   }, []);
 
@@ -35,62 +32,90 @@ export default function AssessmentPage() {
   const isLast = currentIndex === total - 1;
   const progress = total > 0 ? Math.round((currentIndex / total) * 100) : 0;
 
-  // ── Pick an option
   function handleSelect(option) {
     setSelected(option);
   }
 
-  // ── Next question or Submit
-  function handleNext() {
+  // ✅ FIX: handleNext is now async so we can await submitAssessment
+  async function handleNext() {
     if (!selected) return;
 
-    // Save this answer
     const updatedAnswers = { ...answers, [question.id]: selected };
     setAnswers(updatedAnswers);
 
     if (isLast) {
-      // Last question — save to localStorage and go to dashboard
       setIsSubmitting(true);
 
-      localStorage.setItem(
-        "echomind_answers",
-        JSON.stringify(updatedAnswers),
-      );
+      try {
+        // ✅ FIX: Call real AI scoring — no more hardcoded score: 2
+        const result = await submitAssessment(
+          "S001",
+          updatedAnswers,
+          questions
+        );
 
-      localStorage.setItem(
-        "echomind_gap",
-        JSON.stringify({
-          score: 2,
-          total: total,
-          weak_topics: ["Algebra", "Differentiation"],
-          root_cause: "Algebra",
-          roadmap: [
-            {
-              id: 1,
-              title: "Algebra Chapter 3 — Equations",
-              status: "current",
-            },
-            { id: 2, title: "Functions and graphs", status: "locked" },
-            { id: 3, title: "Trigonometric identities", status: "locked" },
-            { id: 4, title: "Retry: Differentiation", status: "locked" },
-          ],
-        }),
-      );
+        if (result) {
+          // ✅ Save real result from AI backend
+          // result shape: { total, correct, score_percent, results }
+          localStorage.setItem("echomind_gap", JSON.stringify(result));
+        } else {
+          // Fallback: compute score locally if AI server is down
+          const correctCount = questions.reduce((acc, q) => {
+            return updatedAnswers[q.id] === q.correct ? acc + 1 : acc;
+          }, 0);
 
-      setTimeout(() => router.push("/dashboard"), 1000);
+          localStorage.setItem(
+            "echomind_gap",
+            JSON.stringify({
+              correct: correctCount,
+              total: total,
+              score_percent: Math.round((correctCount / total) * 100),
+              results: [],
+            }),
+          );
+        }
+
+        // Save raw answers separately
+        localStorage.setItem(
+          "echomind_answers",
+          JSON.stringify(updatedAnswers),
+        );
+
+        router.push("/dashboard");
+      } catch (err) {
+        console.error("Submission error:", err);
+        setIsSubmitting(false);
+      }
     } else {
-      // Move to next question
       setCurrentIndex(currentIndex + 1);
       setSelected(null);
     }
   }
 
   if (loading) {
-    return <div className="p-10">Loading questions...</div>;
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <Navbar role="student" userName="Student" pageTitle="Assessment" />
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500 text-sm animate-pulse">
+            Loading questions from AI...
+          </p>
+        </div>
+      </main>
+    );
   }
 
   if (!question) {
-    return <div className="p-10">No questions found.</div>;
+    return (
+      <main className="min-h-screen bg-gray-50">
+        <Navbar role="student" userName="Student" pageTitle="Assessment" />
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500 text-sm">
+            No questions found. Please check your connection and refresh.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -118,12 +143,10 @@ export default function AssessmentPage() {
 
         {/* ── Question card */}
         <div className="bg-white rounded-2xl border border-gray-100 p-8 mb-6">
-          {/* Question text */}
           <h2 className="text-lg font-semibold text-gray-800 mb-8 leading-relaxed">
             {question.question}
           </h2>
 
-          {/* Options */}
           <div className="flex flex-col gap-3">
             {question.options.map((option, i) => (
               <button

@@ -3,33 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
-
-// ── Simulated AI replies (replaced with real API on Day 14)
-const aiReplies = {
-  integration:
-    "Great question! Integration is the reverse of differentiation. Think of it as finding the area under a curve. For example, if f(x) = 2x, then ∫f(x)dx = x² + C. The C is the constant of integration — we add it because derivatives of constants are zero.",
-  differentiation:
-    "Differentiation measures how fast something changes. The derivative of x² is 2x — meaning at any point x, the slope of the curve is 2x. Remember the power rule: d/dx(xⁿ) = nxⁿ⁻¹. This is the foundation of calculus!",
-  algebra:
-    "Algebra is all about finding unknown values. When I teach algebra, I always say: whatever you do to one side, do to the other. For 2x + 4 = 10, subtract 4 from both sides to get 2x = 6, then divide by 2 to get x = 3.",
-  limit:
-    "A limit describes what value a function approaches as x gets close to a number. lim(x→2) of x² = 4. We're not asking what happens AT x=2, but what the function APPROACHES. This is the foundation of all of calculus!",
-  trigonometry:
-    "Trigonometry connects angles to side lengths. Remember SOH-CAH-TOA: Sine = Opposite/Hypotenuse, Cosine = Adjacent/Hypotenuse, Tangent = Opposite/Adjacent. The most important identity is sin²(x) + cos²(x) = 1 — memorise this!",
-  function:
-    "A function is a rule that maps each input to exactly one output. f(x) = x² means: whatever x you put in, square it. f(3) = 9, f(-2) = 4. Functions are the language of mathematics — everything in calculus is built on them.",
-  hello:
-    "Hello! I'm Professor Kumar. I'm here to help you understand Calculus deeply. Based on your assessment, let's start by strengthening your Algebra foundations. What would you like to know?",
-  help: "Of course! I'm here to help. Based on your learning gap report, I recommend we start with Algebra basics, then move to Functions, and then revisit Differentiation. Which topic would you like to tackle first?",
-};
-
-function getAIReply(message) {
-  const lower = message.toLowerCase();
-  for (const [keyword, reply] of Object.entries(aiReplies)) {
-    if (lower.includes(keyword)) return reply;
-  }
-  return "That's a thoughtful question! In my years of teaching Calculus, I've found that building strong fundamentals is the key. Could you tell me more specifically what part is confusing you? I want to make sure I explain it in a way that makes sense for you.";
-}
+import { sendChatMessage } from "@/lib/api";
 
 // ── Suggested questions
 const suggestions = [
@@ -49,21 +23,16 @@ export default function ChatPage() {
       id: 1,
       sender: "professor",
       text: "Hello! I'm Professor Kumar, your AI tutor. I've reviewed your learning gap report — your root gap is in Algebra, which is affecting your Differentiation and Integration. Let's fix that together. What would you like to start with?",
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      time: "",
     },
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  // ── Auto-scroll to bottom when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // ── Send a message
   function handleSend(text) {
     const messageText = text || input.trim();
     if (!messageText) return;
@@ -75,6 +44,7 @@ export default function ChatPage() {
       time: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
+        hour12: false,
       }),
     };
 
@@ -82,24 +52,44 @@ export default function ChatPage() {
     setInput("");
     setIsTyping(true);
 
-    // Simulate AI thinking delay
-    setTimeout(() => {
-      const reply = getAIReply(messageText);
-      const professorMsg = {
-        id: Date.now() + 1,
-        sender: "professor",
-        text: reply,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setMessages((prev) => [...prev, professorMsg]);
+    (async () => {
+      try {
+        const response = await sendChatMessage(messageText, null, "S001");
+
+        const professorMsg = {
+          id: Date.now() + 1,
+          sender: "professor",
+          text: response?.reply || "No response received.",
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }),
+        };
+
+        setMessages((prev) => [...prev, professorMsg]);
+      } catch (err) {
+        console.error(err);
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            sender: "professor",
+            text: "Failed to contact AI server.",
+            time: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            }),
+          },
+        ]);
+      }
+
       setIsTyping(false);
-    }, 1500);
+    })();
   }
 
-  // ── Enter key sends message
   function handleKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -111,7 +101,6 @@ export default function ChatPage() {
     <main className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar role="student" userName="Student" pageTitle="AI Tutor" />
 
-      {/* ── Chat container */}
       <div
         className="flex-1 flex flex-col max-w-2xl mx-auto w-full px-4 py-6"
         style={{ height: "calc(100vh - 65px)" }}
@@ -146,16 +135,16 @@ export default function ChatPage() {
                 msg.sender === "student" ? "flex-row-reverse" : "flex-row"
               }`}
             >
-              {/* Avatar */}
               {msg.sender === "professor" && (
                 <div className="w-7 h-7 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 mb-1">
                   PK
                 </div>
               )}
 
-              {/* Bubble */}
               <div
-                className={`max-w-xs lg:max-w-md ${msg.sender === "student" ? "items-end" : "items-start"} flex flex-col gap-1`}
+                className={`max-w-xs lg:max-w-md ${
+                  msg.sender === "student" ? "items-end" : "items-start"
+                } flex flex-col gap-1`}
               >
                 <div
                   className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
@@ -166,7 +155,9 @@ export default function ChatPage() {
                 >
                   {msg.text}
                 </div>
-                <span className="text-xs text-gray-400 px-1">{msg.time}</span>
+                {msg.time && (
+                  <span className="text-xs text-gray-400 px-1">{msg.time}</span>
+                )}
               </div>
             </div>
           ))}
@@ -196,7 +187,6 @@ export default function ChatPage() {
             </div>
           )}
 
-          {/* Invisible scroll anchor */}
           <div ref={bottomRef} />
         </div>
 
